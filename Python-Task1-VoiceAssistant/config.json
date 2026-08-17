@@ -1,0 +1,20 @@
+{
+  "wake_word": "assistant",
+  "voice_rate": 170,
+  "voice_volume": 1.0,
+  "voice_id": 0,
+  "listen_timeout": 5,
+  "phrase_time_limit": 10,
+  "weather_api_key": "",
+  "weather_units": "metric",
+  "email_address": "",
+  "email_password": "",
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "custom_commands": {
+    "joke": "Why did the developer go broke? Because he used up all his cache.",
+    "motivate": "You are capable of amazing things. Keep going!",
+    "recipe": "Start with garlic and olive oil. You can't go wrong."
+  },
+  "custom_intents": {}
+}

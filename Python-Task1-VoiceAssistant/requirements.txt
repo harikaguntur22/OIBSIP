@@ -1,0 +1,10 @@
+# Core voice assistant dependencies
+SpeechRecognition==3.17.0
+pyttsx3==2.90
+sounddevice
+
+# Advanced tier — NLP and utilities
+nltk==3.8.1
+requests==2.31.0
+
+# pyttsx3 system dependency on Linux: espeak-ng (install via apt)python -m pip install -r requirements.txt
