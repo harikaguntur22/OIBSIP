@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseChat - Real-Time Messaging App</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body class="dark-theme">
+    <div id="app-container">
+
+        <!-- AUTHENTICATION OVERLAY / SCREEN -->
+        <div id="auth-screen" class="auth-overlay">
+            <div class="auth-card glass-panel">
+                <div class="auth-header">
+                    <div class="app-logo">
+                        <i class="fa-solid me-2 fa-bolt-lightning logo-icon"></i>
+                        <span>PulseChat</span>
+                    </div>
+                    <p class="auth-subtitle">Real-time messaging platform</p>
+                </div>
+
+                <div class="auth-tabs">
+                    <button id="tab-login" class="tab-btn active" onclick="switchAuthTab('login')">Sign In</button>
+                    <button id="tab-register" class="tab-btn" onclick="switchAuthTab('register')">Register</button>
+                </div>
+
+                <!-- Alert Message -->
+                <div id="auth-alert" class="alert-box hidden"></div>
+
+                <!-- Login Form -->
+                <form id="form-login" onsubmit="handleLogin(event)">
+                    <div class="input-group">
+                        <label for="login-username"><i class="fa-regular fa-user"></i> Username</label>
+                        <input type="text" id="login-username" placeholder="Enter your username" required autocomplete="username">
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                        <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span>Sign In</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="form-register" class="hidden" onsubmit="handleRegister(event)">
+                    <div class="input-group">
+                        <label for="reg-username"><i class="fa-regular fa-user"></i> Choose Username</label>
+                        <input type="text" id="reg-username" placeholder="At least 3 characters" required autocomplete="username">
+                    </div>
+                    <div class="input-group">
+                        <label for="reg-password"><i class="fa-solid fa-lock"></i> Password</label>
+                        <input type="password" id="reg-password" placeholder="Create a strong password" required autocomplete="new-password">
+                    </div>
+                    <div class="input-group">
+                        <label for="reg-password-confirm"><i class="fa-solid fa-check-double"></i> Confirm Password</label>
+                        <input type="password" id="reg-password-confirm" placeholder="Re-enter password" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span>Create Account</span>
+                        <i class="fa-solid fa-user-plus"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MAIN CHAT INTERFACE -->
+        <div id="chat-screen" class="chat-layout hidden">
+
+            <!-- SIDEBAR -->
+            <aside class="sidebar glass-panel">
+                <div class="sidebar-header">
+                    <div class="app-branding">
+                        <i class="fa-solid fa-bolt-lightning logo-icon"></i>
+                        <span class="brand-name">PulseChat</span>
+                    </div>
+                    <button class="icon-btn" title="Notification Settings" onclick="requestNotificationPermission()">
+                        <i class="fa-regular fa-bell" id="bell-icon"></i>
+                    </button>
+                </div>
+
+                <!-- User Info Bar -->
+                <div class="user-profile-card">
+                    <div class="avatar" id="current-user-avatar">U</div>
+                    <div class="user-details">
+                        <span class="username-display" id="current-user-display">Loading...</span>
+                        <span class="user-status-online"><i class="fa-solid fa-circle"></i> Online</span>
+                    </div>
+                    <button class="logout-btn" title="Sign Out" onclick="handleLogout()">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+
+                <!-- Chat Rooms Navigation -->
+                <div class="sidebar-section">
+                    <div class="section-title">
+                        <span><i class="fa-solid fa-hashtag"></i> Rooms</span>
+                        <button class="add-room-btn" title="Create Room" onclick="openCreateRoomModal()">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <ul id="rooms-list" class="rooms-list">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+
+                <!-- Online Users Section -->
+                <div class="sidebar-section online-section">
+                    <div class="section-title">
+                        <span><i class="fa-solid fa-users"></i> Online Users (<span id="online-count">0</span>)</span>
+                    </div>
+                    <ul id="online-users-list" class="online-users-list">
+                        <!-- Loaded dynamically -->
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- CHAT MAIN PANEL -->
+            <main class="chat-main glass-panel">
+
+                <!-- Chat Room Top Header -->
+                <header class="chat-header">
+                    <div class="room-info">
+                        <i class="fa-solid fa-hashtag room-icon"></i>
+                        <div>
+                            <h2 id="active-room-title">General</h2>
+                            <p id="active-room-subtitle">Public conversation channel</p>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <div class="connection-badge" id="conn-badge">
+                            <i class="fa-solid fa-circle text-success"></i> Connected
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Messages Feed Container -->
+                <div id="messages-container" class="messages-container">
+                    <div id="messages-list" class="messages-list">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Chat Input Toolbar -->
+                <footer class="chat-footer">
+                    <!-- Emoji Picker Popover -->
+                    <div id="emoji-picker" class="emoji-picker glass-panel hidden">
+                        <div class="emoji-picker-header">
+                            <span>Emoji Shortcodes</span>
+                            <button class="close-picker-btn" onclick="toggleEmojiPicker(false)"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="emoji-grid" id="emoji-grid">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <form id="message-form" class="message-input-form" onsubmit="handleSendMessage(event)">
+                        <button type="button" class="emoji-btn" title="Add Emoji" onclick="toggleEmojiPicker()">
+                            <i class="fa-regular fa-face-smile"></i>
+                        </button>
+                        <input type="text" id="message-input" placeholder="Type a message or use shortcodes like :smile: :fire: :heart: ..." autocomplete="off">
+                        <button type="submit" class="send-btn" title="Send Message">
+                            <span>Send</span>
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </footer>
+            </main>
+        </div>
+
+        <!-- CREATE ROOM MODAL -->
+        <div id="create-room-modal" class="modal-overlay hidden">
+            <div class="modal-card glass-panel">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-folder-plus"></i> Create New Room</h3>
+                    <button class="close-modal-btn" onclick="closeCreateRoomModal()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form onsubmit="handleCreateRoom(event)">
+                    <div class="input-group">
+                        <label for="new-room-name">Room Name</label>
+                        <input type="text" id="new-room-name" placeholder="e.g. Design, Python, Gaming" required maxlength="30">
+                    </div>
+                    <div id="room-modal-alert" class="alert-box hidden"></div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateRoomModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Room</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
